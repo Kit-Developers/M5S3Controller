@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nintendo Switch Controller - Web Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1e1e1e;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .controller-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .left-panel, .center-left-panel, .center-right-panel, .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .button {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        
+        .button:hover {
+            transform: scale(1.05);
+        }
+        
+        .button:active, .button.pressed {
+            transform: scale(0.95);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        
+        .btn-a { background-color: #4CAF50; color: white; }
+        .btn-b { background-color: #f44336; color: white; }
+        .btn-x { background-color: #2196F3; color: white; }
+        .btn-y { background-color: #FF9800; color: white; }
+        
+        .btn-plus, .btn-minus, .btn-home {
+            background-color: #9C27B0;
+            color: white;
+        }
+        
+        .btn-shoulder {
+            background-color: #795548;
+            color: white;
+            padding: 10px 15px;
+            font-size: 14px;
+        }
+        
+        .stick-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 5px;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+        
+        .stick-btn {
+            background-color: #00CED1;
+            color: white;
+            padding: 8px;
+            font-size: 12px;
+        }
+        
+        .stick-up { grid-column: 2; grid-row: 1; }
+        .stick-left { grid-column: 1; grid-row: 2; }
+        .stick-center { grid-column: 2; grid-row: 2; background-color: #666; }
+        .stick-right { grid-column: 3; grid-row: 2; }
+        .stick-down { grid-column: 2; grid-row: 3; }
+        
+        .status {
+            background-color: #333;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .settings {
+            background-color: #333;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .settings input {
+            background-color: #555;
+            color: white;
+            border: 1px solid #777;
+            padding: 8px;
+            border-radius: 4px;
+            width: 200px;
+        }
+        
+        .log {
+            background-color: #222;
+            padding: 15px;
+            border-radius: 8px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        
+        .log-success { color: #4CAF50; }
+        .log-error { color: #f44336; }
+        .log-info { color: #2196F3; }
+        
+        .demo-btn {
+            background-color: #607D8B;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .demo-btn:hover {
+            background-color: #546E7A;
+        }
+        
+        @media (max-width: 768px) {
+            .controller-panel {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto;
+            }
+            
+            .stick-controls {
+                width: 100px;
+                height: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 Nintendo Switch Controller</h1>
+            <p>M5AtomS3 Web Interface</p>
+        </div>
+        
+        <div class="settings">
+            <h3>⚙️ 設定</h3>
+            <label>
+                M5AtomS3 IPアドレス: 
+                <input type="text" id="ipAddress" value="192.168.1.100" placeholder="192.168.1.100">
+            </label>
+            <button class="demo-btn" onclick="testConnection()">接続テスト</button>
+        </div>
+        
+        <div class="status" id="status">
+            <strong>ステータス:</strong> <span id="statusText">未接続</span><br>
+            <strong>接続先:</strong> <span id="connectionUrl">-</span>
+        </div>
+        
+        <div class="controller-panel">
+            <!-- 左パネル: システムボタン -->
+            <div class="left-panel">
+                <h3>システム</h3>
+                <button class="button btn-plus" data-system="plus">+</button>
+                <button class="button btn-minus" data-system="minus">-</button>
+                <button class="button btn-home" data-system="home">HOME</button>
+                
+                <h4 style="margin-top: 20px;">ショルダー</h4>
+                <button class="button btn-shoulder" data-shoulder="L">L</button>
+                <button class="button btn-shoulder" data-shoulder="ZL">ZL</button>
+            </div>
+            
+            <!-- 中央左パネル: 左スティック -->
+            <div class="center-left-panel">
+                <h3>左スティック</h3>
+                <div class="stick-controls">
+                    <button class="button stick-btn stick-up" data-stick="l-up">↑</button>
+                    <button class="button stick-btn stick-left" data-stick="l-left">←</button>
+                    <button class="button stick-btn stick-center" data-stick="l-center">●</button>
+                    <button class="button stick-btn stick-right" data-stick="l-right">→</button>
+                    <button class="button stick-btn stick-down" data-stick="l-down">↓</button>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <h4>精密制御</h4>
+                    <label>X: <input type="range" id="lstickX" min="-100" max="100" value="0" style="width: 80px;"></label>
+                    <span id="lstickXValue">0</span><br>
+                    <label>Y: <input type="range" id="lstickY" min="-100" max="100" value="0" style="width: 80px;"></label>
+                    <span id="lstickYValue">0</span>
+                </div>
+            </div>
+            
+            <!-- 中央右パネル: 右スティック -->
+            <div class="center-right-panel">
+                <h3>右スティック</h3>
+                <div class="stick-controls">
+                    <button class="button stick-btn stick-up" data-stick="r-up">↑</button>
+                    <button class="button stick-btn stick-left" data-stick="r-left">←</button>
+                    <button class="button stick-btn stick-center" data-stick="r-center">●</button>
+                    <button class="button stick-btn stick-right" data-stick="r-right">→</button>
+                    <button class="button stick-btn stick-down" data-stick="r-down">↓</button>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                    <h4>精密制御</h4>
+                    <label>X: <input type="range" id="rstickX" min="-100" max="100" value="0" style="width: 80px;"></label>
+                    <span id="rstickXValue">0</span><br>
+                    <label>Y: <input type="range" id="rstickY" min="-100" max="100" value="0" style="width: 80px;"></label>
+                    <span id="rstickYValue">0</span>
+                </div>
+            </div>
+            
+            <!-- 右パネル: メインボタン -->
+            <div class="right-panel">
+                <h3>メインボタン</h3>
+                <button class="button btn-y" data-button="Y">Y</button>
+                <button class="button btn-x" data-button="X">X</button>
+                <button class="button btn-a" data-button="A">A</button>
+                <button class="button btn-b" data-button="B">B</button>
+                
+                <h4 style="margin-top: 20px;">ショルダー</h4>
+                <button class="button btn-shoulder" data-shoulder="R">R</button>
+                <button class="button btn-shoulder" data-shoulder="ZR">ZR</button>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button class="demo-btn" onclick="testConnection()">接続テスト</button>
+            <button class="demo-btn" onclick="resetAll()">すべてリセット</button>
+        </div>
+        
+        <div class="log" id="log">
+            <div class="log-entry log-info">Web Controller 準備完了</div>
+        </div>
+    </div>
+
+    <script>
+        let controllerIP = '192.168.1.100';
+        let controllerURL = `http://${controllerIP}/controller`;
+        
+        // 現在の入力状態
+        const currentState = {
+            buttons: { A: false, B: false, X: false, Y: false },
+            lstick: { x: 0, y: 0 },
+            rstick: { x: 0, y: 0 },
+            shoulder: { L: false, R: false, ZL: false, ZR: false },
+            system: { plus: false, minus: false, home: false }
+        };
+        
+        // コントローラー入力送信
+        async function sendControllerInput(data = {}) {
+            const payload = {
+                buttons: { ...currentState.buttons, ...(data.buttons || {}) },
+                lstick: { ...currentState.lstick, ...(data.lstick || {}) },
+                rstick: { ...currentState.rstick, ...(data.rstick || {}) },
+                shoulder: { ...currentState.shoulder, ...(data.shoulder || {}) },
+                system: { ...currentState.system, ...(data.system || {}) }
+            };
+            
+            try {
+                const response = await fetch(controllerURL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    addLog('送信成功', 'success');
+                    return true;
+                } else {
+                    addLog(`送信失敗: ${response.status}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                addLog(`接続エラー: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // ログ追加
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // 接続テスト
+        async function testConnection() {
+            addLog('接続テスト中...', 'info');
+            const success = await sendControllerInput();
+            
+            if (success) {
+                document.getElementById('statusText').textContent = '接続成功';
+                document.getElementById('connectionUrl').textContent = controllerURL;
+            } else {
+                document.getElementById('statusText').textContent = '接続失敗';
+            }
+        }
+        
+        // すべてリセット
+        async function resetAll() {
+            Object.assign(currentState, {
+                buttons: { A: false, B: false, X: false, Y: false },
+                lstick: { x: 0, y: 0 },
+                rstick: { x: 0, y: 0 },
+                shoulder: { L: false, R: false, ZL: false, ZR: false },
+                system: { plus: false, minus: false, home: false }
+            });
+            
+            // スライダーリセット
+            ['lstickX', 'lstickY', 'rstickX', 'rstickY'].forEach(id => {
+                document.getElementById(id).value = 0;
+                document.getElementById(id + 'Value').textContent = '0';
+            });
+            
+            // ボタン表示リセット
+            document.querySelectorAll('.button.pressed').forEach(btn => {
+                btn.classList.remove('pressed');
+            });
+            
+            await sendControllerInput();
+            addLog('すべてリセット完了', 'info');
+        }
+        
+        // イベントリスナー設定
+        document.addEventListener('DOMContentLoaded', function() {
+            // IPアドレス変更
+            document.getElementById('ipAddress').addEventListener('change', function() {
+                controllerIP = this.value;
+                controllerURL = `http://${controllerIP}/controller`;
+                document.getElementById('connectionUrl').textContent = controllerURL;
+            });
+            
+            // メインボタン
+            document.querySelectorAll('[data-button]').forEach(button => {
+                button.addEventListener('mousedown', async function() {
+                    const btn = this.dataset.button;
+                    currentState.buttons[btn] = true;
+                    this.classList.add('pressed');
+                    await sendControllerInput({ buttons: { [btn]: true } });
+                });
+                
+                button.addEventListener('mouseup', async function() {
+                    const btn = this.dataset.button;
+                    currentState.buttons[btn] = false;
+                    this.classList.remove('pressed');
+                    await sendControllerInput({ buttons: { [btn]: false } });
+                });
+            });
+            
+            // ショルダーボタン
+            document.querySelectorAll('[data-shoulder]').forEach(button => {
+                button.addEventListener('mousedown', async function() {
+                    const btn = this.dataset.shoulder;
+                    currentState.shoulder[btn] = true;
+                    this.classList.add('pressed');
+                    await sendControllerInput({ shoulder: { [btn]: true } });
+                });
+                
+                button.addEventListener('mouseup', async function() {
+                    const btn = this.dataset.shoulder;
+                    currentState.shoulder[btn] = false;
+                    this.classList.remove('pressed');
+                    await sendControllerInput({ shoulder: { [btn]: false } });
+                });
+            });
+            
+            // システムボタン
+            document.querySelectorAll('[data-system]').forEach(button => {
+                button.addEventListener('mousedown', async function() {
+                    const btn = this.dataset.system;
+                    currentState.system[btn] = true;
+                    this.classList.add('pressed');
+                    await sendControllerInput({ system: { [btn]: true } });
+                });
+                
+                button.addEventListener('mouseup', async function() {
+                    const btn = this.dataset.system;
+                    currentState.system[btn] = false;
+                    this.classList.remove('pressed');
+                    await sendControllerInput({ system: { [btn]: false } });
+                });
+            });
+            
+            // スティックボタン
+            document.querySelectorAll('[data-stick]').forEach(button => {
+                button.addEventListener('mousedown', async function() {
+                    const stick = this.dataset.stick;
+                    const [side, direction] = stick.split('-');
+                    
+                    let data = {};
+                    if (side === 'l') {
+                        switch (direction) {
+                            case 'up': data.lstick = { x: 0, y: 100 }; break;  // 修正: -100 → 100
+                            case 'down': data.lstick = { x: 0, y: -100 }; break;  // 修正: 100 → -100
+                            case 'left': data.lstick = { x: -100, y: 0 }; break;
+                            case 'right': data.lstick = { x: 100, y: 0 }; break;
+                            case 'center': data.lstick = { x: 0, y: 0 }; break;
+                        }
+                        currentState.lstick = data.lstick;
+                    } else {
+                        switch (direction) {
+                            case 'up': data.rstick = { x: 0, y: 100 }; break;  // 修正: -100 → 100
+                            case 'down': data.rstick = { x: 0, y: -100 }; break;  // 修正: 100 → -100
+                            case 'left': data.rstick = { x: -100, y: 0 }; break;
+                            case 'right': data.rstick = { x: 100, y: 0 }; break;
+                            case 'center': data.rstick = { x: 0, y: 0 }; break;
+                        }
+                        currentState.rstick = data.rstick;
+                    }
+                    
+                    await sendControllerInput(data);
+                });
+            });
+            
+            // スライダー
+            ['lstickX', 'lstickY', 'rstickX', 'rstickY'].forEach(id => {
+                const slider = document.getElementById(id);
+                const valueSpan = document.getElementById(id + 'Value');
+                
+                slider.addEventListener('input', async function() {
+                    const value = parseInt(this.value);
+                    valueSpan.textContent = value;
+                    
+                    if (id.startsWith('lstick')) {
+                        currentState.lstick[id.slice(-1).toLowerCase()] = value;
+                        await sendControllerInput({ lstick: currentState.lstick });
+                    } else {
+                        currentState.rstick[id.slice(-1).toLowerCase()] = value;
+                        await sendControllerInput({ rstick: currentState.rstick });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html> 
