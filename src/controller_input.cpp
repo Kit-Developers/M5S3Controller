@@ -93,6 +93,47 @@ void updateSwitchController() {
         }
         btnHome.previous = btnHome_active;
     }
+    
+    // ショルダーボタン（L, R, ZL, ZR）
+    bool btnL_active = webButtons.L;
+    static bool btnL_previous = false;
+    if (btnL_active != btnL_previous) {
+        if (btnL_active) {
+            pushButton2(Button::L, 40, 0, 1);  // 40ms押下
+            button_press_count++;
+        }
+        btnL_previous = btnL_active;
+    }
+    
+    bool btnR_active = webButtons.R;
+    static bool btnR_previous = false;
+    if (btnR_active != btnR_previous) {
+        if (btnR_active) {
+            pushButton2(Button::R, 40, 0, 1);  // 40ms押下
+            button_press_count++;
+        }
+        btnR_previous = btnR_active;
+    }
+    
+    bool btnZL_active = webButtons.ZL;
+    static bool btnZL_previous = false;
+    if (btnZL_active != btnZL_previous) {
+        if (btnZL_active) {
+            pushButton2(Button::ZL, 40, 0, 1);  // 40ms押下
+            button_press_count++;
+        }
+        btnZL_previous = btnZL_active;
+    }
+    
+    bool btnZR_active = webButtons.ZR;
+    static bool btnZR_previous = false;
+    if (btnZR_active != btnZR_previous) {
+        if (btnZR_active) {
+            pushButton2(Button::ZR, 40, 0, 1);  // 40ms押下
+            button_press_count++;
+        }
+        btnZR_previous = btnZR_active;
+    }
 }
 
 void initController() {
